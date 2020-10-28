@@ -6,10 +6,9 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/NYTimes/gziphandler"
 	"github.com/blendle/zapdriver"
 	"github.com/d47id/zapmw"
-
-	"github.com/NYTimes/gziphandler"
 	"github.com/go-chi/chi"
 	"go.uber.org/zap"
 )
