@@ -6,23 +6,17 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/blendle/zapdriver"
 	"github.com/d47id/zapmw"
 
 	"github.com/NYTimes/gziphandler"
 	"github.com/go-chi/chi"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 func main() {
 	// create logger
-	zapenc := zap.NewProductionEncoderConfig()
-	zapenc.EncodeTime = zapcore.RFC3339NanoTimeEncoder
-	zapenc.EncodeDuration = zapcore.StringDurationEncoder
-	zapcfg := zap.NewProductionConfig()
-	zapcfg.EncoderConfig = zapenc
-	zapcfg.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
-	l, err := zapcfg.Build()
+	l, err := zapdriver.NewProduction()
 	if err != nil {
 		panic(err)
 	}
