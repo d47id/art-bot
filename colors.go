@@ -1,6 +1,14 @@
 package main
 
-var colors = []string{
+import "math/rand"
+
+type randstr []string
+
+func (s randstr) Sample() string {
+	return s[rand.Intn(len(s))]
+}
+
+var colors randstr = []string{
 	"AliceBlue",
 	"AntiqueWhite",
 	"Aqua",

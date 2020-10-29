@@ -39,11 +39,10 @@ func main() {
 	// create http router
 	mux := chi.NewRouter()
 	mux.Use(zapmw.New(l))
+	mux.Use(gziphandler.MustNewGzipLevelHandler(gzip.BestCompression))
 	mux.Get("/", s.index)
-	mux.Route("/image", func(r chi.Router) {
-		r.Use(gziphandler.MustNewGzipLevelHandler(gzip.BestCompression))
-		r.Get("/checkerboard.svg", s.checkerboard)
-	})
+	mux.Get("/checkerboard.svg", s.checkerboard)
+	mux.Get("/circles.svg", s.circles)
 
 	// start http server
 	l.Info("server starting")

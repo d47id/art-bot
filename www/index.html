@@ -3,12 +3,14 @@
     <title>Nothing</title>
     <style>
       body {
-        background-image: radial-gradient(circle, transparent, {{.Vignette}}), url(/image/checkerboard.svg);
+        background-image: radial-gradient(circle, transparent, {{.Vignette}}), 
+          url(/{{.Background}});
         background-blend-mode: multiply;
         background-size: cover;
       }
 
       p {
+        margin: 0;
         position: absolute;
         top: 20px;
         left: 20px;
