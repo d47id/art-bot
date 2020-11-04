@@ -5,17 +5,22 @@ import (
 	"html/template"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/NYTimes/gziphandler"
 	"github.com/blendle/zapdriver"
 	"github.com/d47id/zapmw"
 	"github.com/go-chi/chi"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 func main() {
 	// create logger
 	l, err := zapdriver.NewProduction()
+	if ok, err := strconv.ParseBool(os.Getenv("DEBUG")); err == nil && ok {
+		l, err = getDevelopmentLogger()
+	}
 	if err != nil {
 		panic(err)
 	}
@@ -43,10 +48,22 @@ func main() {
 	mux.Get("/", s.index)
 	mux.Get("/checkerboard.svg", s.checkerboard)
 	mux.Get("/circles.svg", s.circles)
+	mux.Get("/dave-bot.svg", s.daveBotSVG)
+	mux.Get("/dave-bot.png", s.daveBotPNG)
 
 	// start http server
 	l.Info("server starting")
 	if err := http.ListenAndServe(":"+port, mux); err != nil {
 		l.Error("listen and serve", zap.Error(err))
 	}
+}
+
+func getDevelopmentLogger() (*zap.Logger, error) {
+	enc := zap.NewProductionEncoderConfig()
+	enc.EncodeTime = zapcore.RFC3339NanoTimeEncoder
+	enc.EncodeDuration = zapcore.StringDurationEncoder
+	cfg := zap.NewProductionConfig()
+	cfg.EncoderConfig = enc
+	cfg.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
+	return cfg.Build()
 }
