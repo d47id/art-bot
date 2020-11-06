@@ -3,9 +3,11 @@ package main
 import (
 	"compress/gzip"
 	"html/template"
+	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/NYTimes/gziphandler"
 	"github.com/blendle/zapdriver"
@@ -31,6 +33,9 @@ func main() {
 		port = "8080"
 	}
 	l = l.With(zap.String("server_port", port))
+
+	// seed random number generator
+	rand.Seed(time.Now().Unix())
 
 	// load template
 	tpl, err := template.ParseGlob("www/*")

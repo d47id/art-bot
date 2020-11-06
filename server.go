@@ -38,9 +38,9 @@ func (s *server) index(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) daveBotSVG(w http.ResponseWriter, r *http.Request) {
-	size, foreground, _ := parseDaveBotParameters(r)
+	size, padding, foreground, _ := parseDaveBotParameters(r)
 
-	rects := makeDaveBot(size, foreground)
+	rects := makeDaveBot(size, padding, foreground)
 	data := struct {
 		Size       int
 		Rectangles []*rectangle
@@ -53,9 +53,9 @@ func (s *server) daveBotSVG(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) daveBotPNG(w http.ResponseWriter, r *http.Request) {
-	size, foreground, background := parseDaveBotParameters(r)
+	size, padding, foreground, background := parseDaveBotParameters(r)
 
-	rects := makeDaveBot(size, foreground)
+	rects := makeDaveBot(size, padding, foreground)
 	img := rasterizeRectangles(size, rects, colors.Color(background))
 
 	w.Header().Add("Content-Type", "image/png")
@@ -64,21 +64,29 @@ func (s *server) daveBotPNG(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func parseDaveBotParameters(r *http.Request) (size int, foreground, background string) {
-	size = 600
+func parseDaveBotParameters(r *http.Request) (size, padding int, foreground, background string) {
 	q := r.URL.Query()
+	padding = 2
+	if i, err := strconv.Atoi(q.Get("padding")); err == nil {
+		padding = i
+	}
+
+	size = 600
 	if i, err := strconv.Atoi(q.Get("size")); err == nil {
-		// ensure size is divisible by 12
-		if i%12 != 0 {
-			i += 12 - (i % 12)
-		}
 		size = i
 	}
-	foreground = colors.DeepPink
+
+	// ensure size is divisible by minimum width
+	width := 2*padding + 8
+	if size%width != 0 {
+		size += width - size%width
+	}
+
+	foreground = colors.Random()
 	if col := q.Get("foreground"); colors.Color(col) != nil {
 		foreground = col
 	}
-	background = colors.Honeydew
+	background = colors.Random()
 	if col := q.Get("background"); colors.Color(col) != nil {
 		background = col
 	}
@@ -86,45 +94,45 @@ func parseDaveBotParameters(r *http.Request) (size int, foreground, background s
 	return
 }
 
-func makeDaveBot(size int, col string) []*rectangle {
-	unit := size / 12
+func makeDaveBot(size, padding int, col string) []*rectangle {
+	width := 2*padding + 8
+	unit := size / width
 	rects := make([]*rectangle, 0, 4)
 
-	// left eye
-	rects = append(rects, &rectangle{
-		Height: unit,
-		Width:  2 * unit,
-		X:      4 * unit,
-		Y:      2 * unit,
-		Color:  col,
-	})
-
-	// right eye
-	rects = append(rects, &rectangle{
-		Height: unit,
-		Width:  2 * unit,
-		X:      8 * unit,
-		Y:      2 * unit,
-		Color:  col,
-	})
-
-	// mouth
-	rects = append(rects, &rectangle{
-		Height: unit,
-		Width:  4 * unit,
-		X:      6 * unit,
-		Y:      4 * unit,
-		Color:  col,
-	})
-
-	// beard
-	rects = append(rects, &rectangle{
-		Height: 4 * unit,
-		Width:  8 * unit,
-		X:      2 * unit,
-		Y:      6 * unit,
-		Color:  col,
-	})
+	rects = append(rects,
+		// left eye
+		&rectangle{
+			Height: unit,
+			Width:  2 * unit,
+			X:      (padding + 2) * unit,
+			Y:      padding * unit,
+			Color:  col,
+		},
+		// right eye
+		&rectangle{
+			Height: unit,
+			Width:  2 * unit,
+			X:      (padding + 6) * unit,
+			Y:      padding * unit,
+			Color:  col,
+		},
+		// mouth
+		&rectangle{
+			Height: unit,
+			Width:  4 * unit,
+			X:      (padding + 4) * unit,
+			Y:      (padding + 2) * unit,
+			Color:  col,
+		},
+		// beard
+		&rectangle{
+			Height: 4 * unit,
+			Width:  8 * unit,
+			X:      padding * unit,
+			Y:      (padding + 4) * unit,
+			Color:  col,
+		},
+	)
 
 	return rects
 }
