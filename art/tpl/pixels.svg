@@ -1,0 +1,10 @@
+<svg version="1.1"
+  baseProfile="full"
+  width="{{.Width}}" height="{{.Height}}"
+  xmlns="http://www.w3.org/2000/svg">
+
+  {{range .Pixels}}
+  <rect x="{{.X}}" y="{{.Y}}" width="{{.Size}}" height="{{.Size}}" fill="{{.Color}}" />
+  {{end}}
+  
+</svg>

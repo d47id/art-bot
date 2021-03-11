@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/d47id/art-bot/art"
 	"github.com/d47id/art-bot/colors"
 	"github.com/d47id/zapmw"
 
@@ -18,10 +19,11 @@ import (
 type server struct {
 	l   *zap.Logger
 	tpl *template.Template
+	bot *art.Bot
 }
 
 func (s *server) index(w http.ResponseWriter, r *http.Request) {
-	backgrounds := []string{"checkerboard.svg", "circles.svg"}
+	backgrounds := []string{"checkerboard.svg", "circles.svg", "pixellated.svg"}
 	data := struct {
 		Vignette   string
 		Text       string
@@ -254,4 +256,11 @@ type circle struct {
 	Y      int
 	Radius int
 	Color  string
+}
+
+func (s *server) pixellated(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-Type", "image/svg+xml")
+	if err := s.bot.WritePixellatedSVG(r.Context(), w); err != nil {
+		zapmw.Extract(r.Context()).Error("write pixellated svg", zap.Error(err))
+	}
 }

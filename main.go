@@ -11,6 +11,7 @@ import (
 
 	"github.com/NYTimes/gziphandler"
 	"github.com/blendle/zapdriver"
+	"github.com/d47id/art-bot/art"
 	"github.com/d47id/zapmw"
 	"github.com/go-chi/chi"
 	"go.uber.org/zap"
@@ -43,8 +44,14 @@ func main() {
 		panic(err)
 	}
 
+	// create art bot
+	bot, err := art.New()
+	if err != nil {
+		panic(err)
+	}
+
 	// create server
-	s := &server{tpl: tpl, l: l}
+	s := &server{tpl: tpl, l: l, bot: bot}
 
 	// create http router
 	mux := chi.NewRouter()
@@ -55,6 +62,7 @@ func main() {
 	mux.Get("/circles.svg", s.circles)
 	mux.Get("/dave-bot.svg", s.daveBotSVG)
 	mux.Get("/dave-bot.png", s.daveBotPNG)
+	mux.Get("/pixellated.svg", s.pixellated)
 
 	// start http server
 	l.Info("server starting")
