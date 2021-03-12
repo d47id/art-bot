@@ -1,8 +1,6 @@
 package art
 
 import (
-	"context"
-	"fmt"
 	"image"
 	"io"
 
@@ -48,13 +46,11 @@ func imageToVector(img image.Image) *vector {
 	for x := 0; x < width; x++ {
 		for y := 0; y < height; y++ {
 			c := img.At(int(float64(x)*scale), int(float64(y)*scale))
-			r, g, b, _ := c.RGBA()
-			r, g, b = r/0x101, g/0x101, b/0x101 // convert 16bit rgb values to 8-bit
 			v.Pixels = append(v.Pixels, pixel{
 				X:     x * pxSize,
 				Y:     y * pxSize,
 				Size:  pxSize,
-				Color: fmt.Sprintf("rgba(%d, %d, %d, 1)", r, g, b),
+				Color: cssRGBA(c),
 			})
 		}
 	}
@@ -64,8 +60,8 @@ func imageToVector(img image.Image) *vector {
 
 // WritePixellatedSVG writes a random image rendered as svg+xml "pixels"
 // to the given writer
-func (b *Bot) WritePixellatedSVG(ctx context.Context, w io.Writer) error {
-	img, err := b.imgs.GetImage()
+func (b *Bot) WritePixellatedSVG(w io.Writer) error {
+	img, err := b.imgs.get()
 	if err != nil {
 		return err
 	}

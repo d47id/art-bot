@@ -5,5 +5,4 @@ RUN go build -ldflags "-s -w" -o /go/bin/app
 
 FROM gcr.io/distroless/base
 COPY --from=build /go/bin/app /
-COPY www /www
 ENTRYPOINT [ "/app" ]

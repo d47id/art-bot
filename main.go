@@ -1,19 +1,15 @@
 package main
 
 import (
-	"compress/gzip"
-	"html/template"
 	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
 
-	"github.com/NYTimes/gziphandler"
 	"github.com/blendle/zapdriver"
 	"github.com/d47id/art-bot/art"
-	"github.com/d47id/zapmw"
-	"github.com/go-chi/chi"
+	"github.com/d47id/art-bot/server"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -34,41 +30,30 @@ func main() {
 		port = "8080"
 	}
 	l = l.With(zap.String("server_port", port))
+	l.Info("server starting")
 
 	// seed random number generator
 	rand.Seed(time.Now().Unix())
 
-	// load template
-	tpl, err := template.ParseGlob("www/*")
-	if err != nil {
-		panic(err)
-	}
-
-	// create art bot
+	// create bot
 	bot, err := art.New()
 	if err != nil {
 		panic(err)
 	}
 
 	// create server
-	s := &server{tpl: tpl, l: l, bot: bot}
-
-	// create http router
-	mux := chi.NewRouter()
-	mux.Use(zapmw.New(l))
-	mux.Use(gziphandler.MustNewGzipLevelHandler(gzip.BestCompression))
-	mux.Get("/", s.index)
-	mux.Get("/checkerboard.svg", s.checkerboard)
-	mux.Get("/circles.svg", s.circles)
-	mux.Get("/dave-bot.svg", s.daveBotSVG)
-	mux.Get("/dave-bot.png", s.daveBotPNG)
-	mux.Get("/pixellated.svg", s.pixellated)
+	s, err := server.New(l, bot)
+	if err != nil {
+		panic(err)
+	}
 
 	// start http server
-	l.Info("server starting")
-	if err := http.ListenAndServe(":"+port, mux); err != nil {
+	l.Info("server started")
+	if err := http.ListenAndServe(":"+port, s); err != nil {
 		l.Error("listen and serve", zap.Error(err))
 	}
+
+	// TODO listen for signals and gracefully shut down
 }
 
 func getDevelopmentLogger() (*zap.Logger, error) {
