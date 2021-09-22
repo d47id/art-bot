@@ -11,6 +11,8 @@ func (s *Server) routes() {
 	s.mux.Use(zapmw.New(s.l))
 	s.mux.Use(gziphandler.MustNewGzipLevelHandler(gzip.BestCompression))
 	s.mux.Get("/", s.index)
+	s.mux.Get("/resume", s.resume)
+	s.mux.Get("/styles.css", s.styles)
 	s.mux.Get("/checkerboard.svg", s.checkerboard)
 	s.mux.Get("/circles.svg", s.circles)
 	s.mux.Get("/dave-bot.svg", s.daveBotSVG)

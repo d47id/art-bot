@@ -2,7 +2,9 @@ package server
 
 import (
 	"embed"
+	"fmt"
 	"html/template"
+	"image/color"
 	"image/png"
 	"math/rand"
 	"net/http"
@@ -12,6 +14,8 @@ import (
 	"github.com/d47id/art-bot/colors"
 	"github.com/d47id/zapmw"
 	"github.com/go-chi/chi"
+	colorful "github.com/lucasb-eyer/go-colorful"
+	"github.com/muesli/gamut"
 	"go.uber.org/zap"
 )
 
@@ -47,20 +51,77 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) index(w http.ResponseWriter, r *http.Request) {
-	backgrounds := []string{"checkerboard.svg", "circles.svg", "pixellated.svg", "bubbles.svg"}
+	if err := s.tpl.ExecuteTemplate(w, "index.html", nil); err != nil {
+		zapmw.Extract(r.Context()).Error("execute template", zap.Error(err))
+	}
+}
+
+func (s *Server) resume(w http.ResponseWriter, r *http.Request) {
+	if err := s.tpl.ExecuteTemplate(w, "resume.html", nil); err != nil {
+		zapmw.Extract(r.Context()).Error("execute template", zap.Error(err))
+	}
+}
+
+func (s *Server) styles(w http.ResponseWriter, r *http.Request) {
+	tint, text := makeColors()
+
 	data := struct {
-		Vignette   string
+		Tint       template.CSS
 		Text       string
 		Background string
 	}{
-		colors.Random(),
-		colors.Random(),
-		backgrounds[rand.Intn(len(backgrounds))],
+		tint,
+		text,
+		getBackground(),
 	}
 
-	if err := s.tpl.ExecuteTemplate(w, "index.html", data); err != nil {
+	if err := s.tpl.ExecuteTemplate(w, "styles.css", data); err != nil {
 		zapmw.Extract(r.Context()).Error("execute template", zap.Error(err))
 	}
+}
+
+func getBackground() string {
+	backgrounds := []string{
+		"checkerboard.svg",
+		"circles.svg",
+		"pixellated.svg",
+		"bubbles.svg",
+	}
+
+	return backgrounds[rand.Intn(len(backgrounds))]
+}
+
+func makeColors() (tint template.CSS, text string) {
+	// pick dark mode or light mode
+	tintL := 0.80
+	textL := 0.30
+	if rand.Float64() > 0.5 {
+		tintL = 0.30
+		textL = 0.80
+	}
+
+	tintBase := colors.Color(colors.Random())
+	var tintColor color.Color
+	if col, ok := colorful.MakeColor(tintBase); ok {
+		h, c, _ := col.Hcl()
+		tintColor = colorful.Hcl(h, c, tintL).Clamped()
+	}
+	tint = cssRGBA(tintColor)
+
+	var textColor color.Color
+	if col, ok := colorful.MakeColor(gamut.Complementary(tintBase)); ok {
+		h, c, _ := col.Hcl()
+		textColor = colorful.Hcl(h, c, textL).Clamped()
+	}
+	text = gamut.ToHex(textColor)
+
+	return
+}
+
+func cssRGBA(c color.Color) template.CSS {
+	r, g, b, _ := c.RGBA()
+	r, g, b = r/0x101, g/0x101, b/0x101 // convert 16bit rgb values to 8-bit
+	return template.CSS(fmt.Sprintf("rgba(%d, %d, %d, 0.75)", r, g, b))
 }
 
 func (s *Server) daveBotSVG(w http.ResponseWriter, r *http.Request) {
