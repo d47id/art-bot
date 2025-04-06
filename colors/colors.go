@@ -4,12 +4,7 @@ import (
 	"image/color"
 	"math/rand"
 	"strings"
-	"time"
 )
-
-func init() {
-	rand.Seed(time.Now().Unix())
-}
 
 // Random returns a random CSS3 color name
 func Random() string {
