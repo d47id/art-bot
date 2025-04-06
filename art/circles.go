@@ -70,8 +70,8 @@ func makeBubbleImage(img image.Image) (width int, height int, circles []circle) 
 	height = int(float64(origH) / scale)
 	circles = make([]circle, 0, width*height)
 
-	for x := 0; x < width; x++ {
-		for y := 0; y < height; y++ {
+	for x := range width {
+		for y := range height {
 			c := img.At(int(float64(x)*scale), int(float64(y)*scale))
 			circles = append(circles, circle{
 				X:      x*10 + 5, // center circle in 10x10 square in output svg
@@ -88,12 +88,7 @@ func makeBubbleImage(img image.Image) (width int, height int, circles []circle) 
 
 // WriteBubbleImage writes a random bubble image from the cache to w
 func (b *Bot) WriteBubbleImage(w io.Writer) error {
-	img, err := b.imgs.get()
-	if err != nil {
-		return err
-	}
-
-	width, height, circles := makeBubbleImage(img)
+	width, height, circles := makeBubbleImage(b.imgs.get())
 	return b.tpl.ExecuteTemplate(w, "circles.svg", circleVals{
 		Width:   width,
 		Height:  height,
