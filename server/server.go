@@ -76,6 +76,8 @@ func (s *Server) styles(w http.ResponseWriter, r *http.Request) {
 		getBackground(),
 	}
 
+	w.Header().Add("Content-Type", "text/css; charset=utf-8")
+
 	if err := s.tpl.ExecuteTemplate(w, "styles.css", data); err != nil {
 		zapmw.Extract(r.Context()).Error("execute template", zap.Error(err))
 	}
