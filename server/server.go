@@ -14,7 +14,7 @@ import (
 	"github.com/d47id/art-bot/colors"
 
 	"github.com/d47id/zapmw"
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 	colorful "github.com/lucasb-eyer/go-colorful"
 	"github.com/muesli/gamut"
 	"go.uber.org/zap"
