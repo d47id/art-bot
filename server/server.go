@@ -12,6 +12,7 @@ import (
 
 	"github.com/d47id/art-bot/art"
 	"github.com/d47id/art-bot/colors"
+
 	"github.com/d47id/zapmw"
 	"github.com/go-chi/chi"
 	colorful "github.com/lucasb-eyer/go-colorful"
@@ -82,7 +83,7 @@ func (s *Server) styles(w http.ResponseWriter, r *http.Request) {
 
 func getBackground() string {
 	backgrounds := []string{
-		"checkerboard.svg",
+		// "checkerboard.svg",
 		"circles.svg",
 		"pixellated.svg",
 		"bubbles.svg",

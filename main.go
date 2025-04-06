@@ -1,10 +1,12 @@
 package main
 
 import (
-	"math/rand"
+	"context"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/blendle/zapdriver"
@@ -12,9 +14,13 @@ import (
 	"github.com/d47id/art-bot/server"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// create logger
 	l, err := zapdriver.NewProduction()
 	if ok, err := strconv.ParseBool(os.Getenv("DEBUG")); err == nil && ok {
@@ -32,9 +38,6 @@ func main() {
 	l = l.With(zap.String("server_port", port))
 	l.Info("server starting")
 
-	// seed random number generator
-	rand.Seed(time.Now().Unix())
-
 	// create bot
 	bot, err := art.New()
 	if err != nil {
@@ -47,13 +50,45 @@ func main() {
 		panic(err)
 	}
 
-	// start http server
-	l.Info("server started")
-	if err := http.ListenAndServe(":"+port, s); err != nil {
-		l.Error("listen and serve", zap.Error(err))
+	server := &http.Server{
+		Addr:              ":" + port,
+		Handler:           s,
+		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	// TODO listen for signals and gracefully shut down
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+
+	g, ctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		if err := server.ListenAndServe(); err != http.ErrServerClosed {
+			l.Error("listen and serve error", zap.Error(err))
+			return err
+		}
+
+		return nil
+	})
+
+	g.Go(func() error {
+		<-sig
+
+		start := time.Now()
+		l.Debug("shutdown signal received")
+
+		if err := server.Shutdown(ctx); err != nil {
+			return err
+		}
+
+		l.Info("server shut down complete", zap.Duration("duration", time.Since(start)))
+		return nil
+	})
+
+	// start http server
+	l.Info("server started")
+	if err := g.Wait(); err != nil {
+		panic(err)
+	}
 }
 
 func getDevelopmentLogger() (*zap.Logger, error) {

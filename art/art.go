@@ -1,27 +1,26 @@
 package art
 
 import (
-	"context"
 	"embed"
 	"fmt"
 	"html/template"
 	"image"
 	"image/color"
+	_ "image/jpeg"
 	"math/rand"
-	"net/http"
-	"sync"
-	"time"
-
-	"golang.org/x/sync/errgroup"
+	"path"
 )
 
 //go:embed tpl/*
 var tpl embed.FS
 
+//go:embed pics/*
+var pics embed.FS
+
 // Bot produces generative art
 type Bot struct {
 	tpl  *template.Template
-	imgs *images
+	imgs images
 }
 
 // New parses the embedded templates and returns a fresh Bot
@@ -31,71 +30,48 @@ func New() (*Bot, error) {
 		return nil, err
 	}
 
-	const count = 10
-	imgs := &images{
-		rw:    &sync.RWMutex{},
-		cache: make([]image.Image, 0, count),
-		cl:    http.Client{Timeout: 10 * time.Second},
-		src:   "https://source.unsplash.com/random/160x90",
-	}
-
-	if err := imgs.populate(count); err != nil {
+	imgs, err := initImages()
+	if err != nil {
 		return nil, err
 	}
 
 	return &Bot{tpl: tpl, imgs: imgs}, nil
 }
 
-type images struct {
-	rw    *sync.RWMutex
-	cache []image.Image
-	cl    http.Client
-	src   string
-}
+type images []image.Image
 
-func (i *images) get() (image.Image, error) {
-	i.rw.RLock()
-	defer i.rw.RUnlock()
-
-	r := rand.Intn(len(i.cache))
-	return i.cache[r], nil
-}
-
-func (i *images) populate(count int) error {
-	g, ctx := errgroup.WithContext(context.Background())
-	for x := 0; x < count; x++ {
-		g.Go(i.add(ctx))
+func initImages() (images, error) {
+	entries, err := pics.ReadDir("pics")
+	if err != nil {
+		return nil, err
 	}
-	return g.Wait()
+
+	imgs := make(images, 0, len(entries))
+
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+
+		f, err := pics.Open(path.Join("pics", e.Name()))
+		if err != nil {
+			return nil, err
+		}
+
+		img, _, err := image.Decode(f)
+		if err != nil {
+			return nil, err
+		}
+
+		imgs = append(imgs, img)
+	}
+
+	return imgs, nil
 }
 
-func (i *images) add(ctx context.Context) func() error {
-	return func() error {
-		// create request
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, i.src, nil)
-		if err != nil {
-			return err
-		}
-
-		// get new image
-		res, err := i.cl.Do(req)
-		if err != nil {
-			return err
-		}
-		defer res.Body.Close()
-
-		img, _, err := image.Decode(res.Body)
-		if err != nil {
-			return err
-		}
-
-		// add new image to cache
-		i.rw.Lock()
-		defer i.rw.Unlock()
-		i.cache = append(i.cache, img)
-
-		return nil
-	}
+func (i images) get() image.Image {
+	r := rand.Intn(len(i))
+	return i[r]
 }
 
 type rectangle struct {

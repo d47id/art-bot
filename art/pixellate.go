@@ -61,10 +61,5 @@ func imageToVector(img image.Image) *vector {
 // WritePixellatedSVG writes a random image rendered as svg+xml "pixels"
 // to the given writer
 func (b *Bot) WritePixellatedSVG(w io.Writer) error {
-	img, err := b.imgs.get()
-	if err != nil {
-		return err
-	}
-
-	return b.tpl.ExecuteTemplate(w, "pixels.svg", imageToVector(img))
+	return b.tpl.ExecuteTemplate(w, "pixels.svg", imageToVector(b.imgs.get()))
 }
