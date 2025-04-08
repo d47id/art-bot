@@ -16,7 +16,6 @@ import (
 	"github.com/d47id/zapmw"
 	"github.com/go-chi/chi/v5"
 	colorful "github.com/lucasb-eyer/go-colorful"
-	"github.com/muesli/gamut"
 	"go.uber.org/zap"
 )
 
@@ -64,7 +63,23 @@ func (s *Server) resume(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) styles(w http.ResponseWriter, r *http.Request) {
-	tint, text := makeColors()
+	// Check for user's color scheme preference
+	prefersDark := false
+
+	// First try to use Client Hints header (Chrome, Edge, etc.)
+	if r.Header.Get("Sec-CH-Prefers-Color-Scheme") == "dark" {
+		prefersDark = true
+	} else {
+		// Fallback to cookie for browsers that don't support Client Hints (Safari, Firefox)
+		for _, cookie := range r.Cookies() {
+			if cookie.Name == "prefers-dark-mode" {
+				prefersDark = cookie.Value == "true"
+				break
+			}
+		}
+	}
+
+	tint, text := makeColors(prefersDark)
 
 	data := struct {
 		Tint       template.CSS
@@ -86,7 +101,7 @@ func (s *Server) styles(w http.ResponseWriter, r *http.Request) {
 func getBackground() string {
 	backgrounds := []string{
 		// "checkerboard.svg",
-		"circles.svg",
+		// "circles.svg",
 		"pixellated.svg",
 		"bubbles.svg",
 	}
@@ -94,29 +109,24 @@ func getBackground() string {
 	return backgrounds[rand.Intn(len(backgrounds))]
 }
 
-func makeColors() (tint template.CSS, text string) {
-	// pick dark mode or light mode
-	tintL := 0.80
-	textL := 0.30
-	if rand.Float64() > 0.5 {
-		tintL = 0.30
-		textL = 0.80
-	}
+func makeColors(prefersDark bool) (tint template.CSS, text string) {
+	if prefersDark {
+		// Dark mode: white/light gray text and dark background
+		text = "#F5F5F5" // Very light gray, almost white
 
-	tintBase := colors.Color(colors.Random())
-	var tintColor color.Color
-	if col, ok := colorful.MakeColor(tintBase); ok {
-		h, c, _ := col.Hcl()
-		tintColor = colorful.Hcl(h, c, tintL).Clamped()
-	}
-	tint = cssRGBA(tintColor)
+		// Create a dark, desaturated background
+		baseHue := float64(rand.Intn(360))
+		tintColor := colorful.Hsl(baseHue, 0.3, 0.15) // Low saturation, very dark
+		tint = cssRGBA(tintColor)
+	} else {
+		// Light mode: dark gray/black text and bright pale background
+		text = "#212121" // Very dark gray, almost black
 
-	var textColor color.Color
-	if col, ok := colorful.MakeColor(gamut.Complementary(tintBase)); ok {
-		h, c, _ := col.Hcl()
-		textColor = colorful.Hcl(h, c, textL).Clamped()
+		// Create a bright, slightly desaturated background
+		baseHue := float64(rand.Intn(360))
+		tintColor := colorful.Hsl(baseHue, 0.3, 0.95) // Low saturation, very bright
+		tint = cssRGBA(tintColor)
 	}
-	text = gamut.ToHex(textColor)
 
 	return
 }
@@ -200,5 +210,12 @@ func (s *Server) bubbles(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "image/svg+xml")
 	if err := s.bot.WriteBubbleImage(w); err != nil {
 		zapmw.Extract(r.Context()).Error("write bubble image", zap.Error(err))
+	}
+}
+
+func (s *Server) theme(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-Type", "application/javascript")
+	if err := s.tpl.ExecuteTemplate(w, "theme.js", nil); err != nil {
+		zapmw.Extract(r.Context()).Error("execute template", zap.Error(err))
 	}
 }

@@ -3,14 +3,28 @@
   <head>
     <title>David Newlin</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/styles.css">
+    <!-- Prevent flash of wrong theme with inline styles -->
+    <style>
+      html { visibility: hidden; }
+    </style>
+    <script src="/theme.js"></script>
+    <link rel="stylesheet" type="text/css" href="/styles.css">
   </head>
   <body>
-    <main>
-      <h1>David Newlin</h1>
-      <h2><a href="/resume">Résumé</a></h2>
-      <h2><a href="https://github.com/d47id">GitHub</a></h2>
-      <h2><a href="https://www.linkedin.com/in/david-newlin/">LinkedIn</a></h2>
-    </main>
+    <div class="container">
+      <aside class="sidebar">
+        <nav>
+          <h1>David Newlin</h1>
+          <ul class="nav-links">
+            <li><a href="/resume">Résumé</a></li>
+            <li><a href="https://github.com/d47id">GitHub</a></li>
+            <li><a href="https://www.linkedin.com/in/david-newlin/">LinkedIn</a></li>
+          </ul>
+        </nav>
+      </aside>
+      <main class="content">
+        <!-- Main content goes here -->
+      </main>
+    </div>
   </body>
 </html>
